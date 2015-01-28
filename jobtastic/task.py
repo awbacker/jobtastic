@@ -33,6 +33,7 @@ try:
     # Otherwise, try Flask. This definitely needs an actual configuration
     # variable so folks can make an explicit decision.
     from django.core.cache import cache
+
     HAS_DJANGO = True
 except ImportError:
     try:
@@ -41,6 +42,7 @@ except ImportError:
         from werkzeug.contrib.cache import MemcachedCache
 
         from celery import conf
+
         if conf.CELERY_RESULT_BACKEND == 'cache':
             uri_str = conf.CELERY_CACHE_BACKEND.strip('memcached://')
             uris = uri_str.split(';')
@@ -52,7 +54,6 @@ except ImportError:
 if cache is None:
     raise Exception(
         "Jobtastic requires either Django or Flask + Memcached result backend")
-
 
 from jobtastic.states import PROGRESS
 
@@ -298,10 +299,10 @@ class JobtasticTask(Task):
         return completion_display, time_remaining
 
     def update_progress(
-        self,
-        completed_count,
-        total_count,
-        update_frequency=1,
+            self,
+            completed_count,
+            total_count,
+            update_frequency=1,
     ):
         """
         Update the task backend with both an estimated percentage complete and
@@ -435,7 +436,8 @@ class JobtasticTask(Task):
         m = md5()
         for significant_kwarg in self.significant_kwargs:
             key, to_str = significant_kwarg
-            m.update(to_str(kwargs[key]))
+            as_string = to_str(kwargs[key])
+            m.update(as_string.encode('utf-8'))
 
         if hasattr(self, 'cache_prefix'):
             cache_prefix = self.cache_prefix
@@ -450,7 +452,7 @@ class JobtasticTask(Task):
         return usage.rss
 
     def _warn_if_leaking_memory(
-        self, begining_usage, ending_usage, threshold, task_kwargs,
+            self, begining_usage, ending_usage, threshold, task_kwargs,
     ):
         growth = ending_usage - begining_usage
 
@@ -465,7 +467,7 @@ class JobtasticTask(Task):
             )
 
     def warn_of_memory_leak(
-        self, growth, begining_usage, ending_usage, task_kwargs,
+            self, growth, begining_usage, ending_usage, task_kwargs,
     ):
         self.logger.warning(
             "Jobtastic:memleak memleak_detected. memory_increase=%05d unit=MB",
